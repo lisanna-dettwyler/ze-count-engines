@@ -55,7 +55,25 @@ int main() {
             if(ZE_DEVICE_TYPE_GPU == device_properties.type) {
                 hDriver = allDrivers[i];
                 hDevice = allDevices[d];
-                break;
+
+                cout << "Found device: " << device_properties.name << endl;
+
+                uint32_t num_groups;
+                zeDeviceGetCommandQueueGroupProperties(hDevice, &num_groups, nullptr);
+                vector<ze_command_queue_group_properties_t> properties(num_groups);
+                memset(properties.data(), 0, sizeof(ze_command_queue_group_properties_t) * num_groups);
+                for (auto &properties_item : properties) {
+                    properties_item.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_GROUP_PROPERTIES;
+                }
+                zeDeviceGetCommandQueueGroupProperties(hDevice, &num_groups, properties.data());
+                for(int i; i < properties.size(); i++) {
+                    if (properties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE) {
+                        cout << "Found " << properties[i].numQueues << " compute engines in command queue group ordinal " << i << endl;
+                    }
+                    if (properties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COPY) {
+                        cout << "Found " << properties[i].numQueues << " copy engines in command queue group ordinal " << i << endl;
+                    }
+                }
             }
         }
 
@@ -69,22 +87,5 @@ int main() {
     if(nullptr == hDevice) {
         cout << "No GPU devices found" << endl;
         return 1;
-    }
-
-    uint32_t num_groups;
-    zeDeviceGetCommandQueueGroupProperties(hDevice, &num_groups, nullptr);
-    vector<ze_command_queue_group_properties_t> properties(num_groups);
-    memset(properties.data(), 0, sizeof(ze_command_queue_group_properties_t) * num_groups);
-    for (auto &properties_item : properties) {
-        properties_item.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_GROUP_PROPERTIES;
-    }
-    zeDeviceGetCommandQueueGroupProperties(hDevice, &num_groups, properties.data());
-    for(int i; i < properties.size(); i++) {
-        if (properties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE) {
-            cout << "Found " << properties[i].numQueues << " compute engines in command queue group ordinal " << i << endl;
-        }
-        if (properties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COPY) {
-            cout << "Found " << properties[i].numQueues << " copy engines in command queue group ordinal " << i << endl;
-        }
     }
 }
